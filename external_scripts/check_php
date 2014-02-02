@@ -1,0 +1,36 @@
+#!/usr/bin/python
+# check_php is a zabbix_screipt to monitor php-fpm status
+# By Alexey Malov <scukonick@gmail.com>
+
+import string
+try:
+    import urllib.request as urllib2
+except:
+    import urllib2
+import logging
+import argparse
+import json
+
+logging.basicConfig(format='%(asctime)s %(message)s', filename='/tmp/php_check.log', level=logging.DEBUG)
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('host', metavar='HOST')
+parser.add_argument('metric', metavar='METRIC')
+args = parser.parse_args()
+
+url = "http://%s/php-status?json" % args.host
+
+logging.log(logging.DEBUG, "Metric: %s, host: %s" % (args.metric, args.host))
+
+
+try:
+    response = urllib2.urlopen(url)
+except Exception:
+    result['available'] = 0
+    print(result[args.metric])
+    exit()
+
+the_page = response.read()
+result = json.loads(the_page)
+print(result[args.metric])
