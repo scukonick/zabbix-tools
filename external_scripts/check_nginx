@@ -1,35 +1,43 @@
 #!/usr/bin/python
 # check_nginx is a nagios_script to monitor nginx status
-# Original by: yangzi2008@126.com , http://www.nginxs.com
-# Fixed by Alexey Malov <scukonick@gmail.com>
-# TODO: rewrite for python3
+# By Alexey Malov <scukonick@gmail.com>
 
 import string
 try:
     import urllib.request as urllib2
 except:
     import urllib2
-import sys
 import logging
 import argparse
 logging.basicConfig(format='%(asctime)s %(message)s', filename='/tmp/nginx_check.log', level=logging.DEBUG)
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('url', metavar='URL')
+parser.add_argument('host', metavar='HOST')
 parser.add_argument('metric', metavar='METRIC')
 args = parser.parse_args()
 
-result = {
-    'accepted': 0,
-    'handled': 0,
-    'requests': 0,
-    'reading': 0,
-    'writing': 0,
-    'waiting': 0,
-}
+url = "http://%s/nginx-status" % args.host
 
-response = urllib2.urlopen(args.url)
+logging.log(logging.DEBUG, "Metric: %s, host: %s" % (args.metric, args.host))
+
+
+result = {
+    'available': 1,
+    'accepted': -1,
+    'handled': -1,
+    'requests': -1,
+    'reading': -1,
+    'writing': -1,
+    'waiting': -1,
+}
+try:
+    response = urllib2.urlopen(url)
+except Exception:
+    result['available'] = 0
+    print(result[args.metric])
+    exit()
+
 the_page = response.readline()
 conn = the_page.split()
 ActiveConn = int(conn[2].decode("utf-8"))
