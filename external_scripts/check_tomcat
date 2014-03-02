@@ -1,0 +1,67 @@
+#!/usr/bin/python
+# check_nginx is a nagios_script to monitor nginx status
+# By Alexey Malov <scukonick@gmail.com>
+
+import string
+from xml.dom import minidom
+try:
+    import urllib.request as urllib2
+except:
+    import urllib2
+import logging
+import argparse
+logging.basicConfig(format='%(asctime)s %(message)s', filename='/tmp/tomcat_check.log', level=logging.DEBUG)
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('host', metavar='HOST')
+parser.add_argument('metric', metavar='METRIC')
+args = parser.parse_args()
+
+password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+
+url = "https://%s/manager/status?XML=true" % args.host
+
+logging.log(logging.DEBUG, "Metric: %s, host: %s" % (args.metric, args.host))
+
+login = 'USER'
+password = 'PASSWORD'
+password_mgr.add_password(None, url, login, password)
+handler = urllib2.HTTPBasicAuthHandler(password_mgr)
+# create "opener" (OpenerDirector instance)
+opener = urllib2.build_opener(handler)
+
+# Install the opener.
+# Now all calls to urllib2.urlopen use our opener.
+urllib2.install_opener(opener)
+result = {
+    'requests': 1,
+    'max_threads': -1,
+    'busy_threads': -1,
+    'current_threads': -1,
+    'memory_free': -1,
+    'memory_total': -1,
+    'memory_max': 1,
+}
+try:
+    response = urllib2.urlopen(url)
+except Exception:
+    logging.exception("Could not open url %s" % url)
+    result['available'] = 0
+    print(result[args.metric])
+    exit(-1)
+
+xmldoc = minidom.parse(response)
+access_info = xmldoc.getElementsByTagName('requestInfo')[0]
+result['requests'] = access_info.attributes['requestCount'].value
+
+threads_info = xmldoc.getElementsByTagName('threadInfo')[0]
+result['max_threads'] = threads_info.attributes['maxThreads'].value
+result['current_threads'] = threads_info.attributes['currentThreadCount'].value
+result['busy_threads'] = threads_info.attributes['currentThreadsBusy'].value
+
+memory_info = xmldoc.getElementsByTagName('memory')[0]
+result['memory_total'] = memory_info.attributes['total'].value
+result['memory_free'] = memory_info.attributes['free'].value
+result['memory_max'] = memory_info.attributes['max'].value
+print(result[args.metric])
