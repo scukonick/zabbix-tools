@@ -1,0 +1,69 @@
+#!/usr/bin/python
+# check apache is a zabbix to monitor apache status
+# By Alexey Malov <scukonick@gmail.com>
+
+import string
+try:
+    import urllib.request as urllib2
+except:
+    import urllib2
+import logging
+import argparse
+logging.basicConfig(format='%(asctime)s %(message)s', filename='/tmp/apache_check.log', level=logging.DEBUG)
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('host', metavar='HOST')
+parser.add_argument('metric', metavar='METRIC')
+args = parser.parse_args()
+
+url = "http://%s/server-status?auto" % args.host
+
+logging.log(logging.DEBUG, "Metric: %s, host: %s" % (args.metric, args.host))
+
+
+result = {
+    'accesses': -1,
+    'available': 1,  #
+    'idle': -1,  # IdleWorkers: 25
+    'keepalive': -1,  # K
+    'reading': -1,  # R
+    'working': -1,  # W
+    # 'waiting': -1,
+}
+
+try:
+    response = urllib2.urlopen(url)
+except Exception:
+    result['available'] = 0
+    print(result[args.metric])
+    exit()
+
+
+
+the_page = response.readline()
+print (the_page)
+conn = the_page.split()
+total_accesses = int(conn[2].decode("utf-8"))
+result['accesses'] = total_accesses
+
+for i in range(9):
+    the_page = response.readline()
+
+
+
+worker_stat = the_page.split()[1].decode("utf-8")
+print(worker_stat)
+
+print(the_page)
+result['working'] = worker_stat.count('W')
+result['keepalive'] = worker_stat.count('K')
+result['reading'] = worker_stat.count('R')
+result['idle'] = worker_stat.count('_')
+
+print(result)
+
+print(result[args.metric])
+
+
+
