@@ -1,0 +1,62 @@
+#!/usr/bin/python
+# check_nginx is a nagios_script to monitor nginx status
+# By Alexey Malov <scukonick@gmail.com>
+import sys
+import string
+try:
+    import urllib.request as urllib2
+except:
+    import urllib2
+import logging
+import argparse
+logging.basicConfig(format='%(asctime)s %(message)s', filename='/var/log/zabbix/nginx_check.log', level=logging.DEBUG)
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('host', metavar='HOST')
+parser.add_argument('port', metavar='PORT')
+parser.add_argument('metric', metavar='METRIC')
+args = parser.parse_args()
+
+url = "http://%s:%s/nginx-status" % (args.host, args.port)
+
+logging.log(logging.DEBUG, "Metric: %s, port: %s, host: %s" % (args.metric, args.port, args.host))
+
+
+result = {
+    'available': 1,
+    'accepted': -1,
+    'handled': -1,
+    'requests': -1,
+    'reading': -1,
+    'writing': -1,
+    'waiting': -1,
+}
+try:
+    response = urllib2.urlopen(url)
+except Exception:
+    result['available'] = 0
+    print(result[args.metric])
+    sys.exit()
+
+the_page = response.readline()
+conn = the_page.split()
+ActiveConn = int(conn[2].decode("utf-8"))
+the_page1 = response.readline()
+the_page2 = response.readline()
+a = the_page2.split()
+result['accepted'] = int(a[0].decode("utf-8"))
+result['handled'] = int(a[1].decode("utf-8"))
+result['requests'] = int(a[2].decode("utf-8"))
+
+the_page3 = response.readline()
+response.close()
+b = the_page3.split()
+result['reading'] = int(b[1].decode("utf-8"))
+result['writing'] = int(b[3].decode("utf-8"))
+result['waiting'] = int(b[5].decode("utf-8"))
+print(result[args.metric])
+
+
+
+
