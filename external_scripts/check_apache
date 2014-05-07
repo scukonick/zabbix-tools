@@ -42,7 +42,6 @@ except Exception:
 
 
 the_page = response.readline()
-print (the_page)
 conn = the_page.split()
 total_accesses = int(conn[2].decode("utf-8"))
 result['accesses'] = total_accesses
@@ -53,15 +52,11 @@ for i in range(9):
 
 
 worker_stat = the_page.split()[1].decode("utf-8")
-print(worker_stat)
 
-print(the_page)
 result['working'] = worker_stat.count('W')
 result['keepalive'] = worker_stat.count('K')
 result['reading'] = worker_stat.count('R')
 result['idle'] = worker_stat.count('_')
-
-print(result)
 
 print(result[args.metric])
 
